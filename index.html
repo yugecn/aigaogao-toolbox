@@ -1,41 +1,55 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>搞搞股票工具箱 · 复刻优化版</title>
+<meta name="description" content="复刻爱搞搞的 A 股工具箱：板块实时追踪、成本价、钱流、升跌对比、波动指数，盘中每 5 秒刷新行情。">
 <style>
-:root{--bg:#f7f6f2;--card:#fff;--ink:#1d1d1f;--mute:#6b6b70;--line:#e6e4dd;--up:#c0281f;--dn:#0f7339;--upbg:#fde4e1;--dnbg:#dcf3e4;--acc:#2f4bd8}
-@media(prefers-color-scheme:dark){:root{--bg:#141416;--card:#1e1e22;--ink:#f1f1f3;--mute:#9a9aa2;--line:#2e2e34;--up:#ff5a4f;--dn:#34c26c;--upbg:#4a1e1b;--dnbg:#173a26;--acc:#7f93ff}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
-header{padding:18px 16px 6px;max-width:1200px;margin:auto}h1{font-size:22px;margin:0}header p{margin:4px 0 0;color:var(--mute);font-size:13px}
-nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap;padding:0 12px}
-nav button{border:0;background:none;color:var(--mute);padding:12px 10px;font-size:14px;cursor:pointer;border-bottom:2px solid transparent}
+/* Hallmark · checked: 2026-11-14 · genre: editorial (inferred) · scope: app · contrast: pass · signature: 板块实时热力表 */
+:root{--bg:#f7f6f2;--card:#fdfcf8;--ink:#1d1d1f;--mute:#5f5f64;--line:#e6e4dd;--up:#c0281f;--dn:#0f7339;--upbg:#fde4e1;--dnbg:#dcf3e4;--acc:#2f4bd8;--on-acc:#fdfcf8;--live:#fff7cc;--mid:#d9b23a;--ok:#0f7339;--focus:#2f4bd8;
+ --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px}
+@media(prefers-color-scheme:dark){:root{--bg:#141416;--card:#1e1e22;--ink:#f1f1f3;--mute:#a2a2aa;--line:#2e2e34;--up:#ff5a4f;--dn:#34c26c;--upbg:#4a1e1b;--dnbg:#173a26;--acc:#7f93ff;--on-acc:#141416;--live:#3a3412;--ok:#4ad07f;--focus:#9fb0ff}}
+*{box-sizing:border-box}
+html,body{overflow-x:clip;max-width:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+header{padding:var(--s4) var(--s4) var(--s2);max-width:1200px;margin:auto}
+h1{font-size:22px;margin:0;text-wrap:balance}h2{text-wrap:balance}
+header p{margin:var(--s1) 0 0;color:var(--mute);font-size:13px}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);color:var(--ink);border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap;padding:0 var(--s3)}
+nav button{border:0;background:none;color:var(--mute);padding:var(--s3) var(--s2);font-size:14px;cursor:pointer;border-bottom:2px solid transparent}
+nav button:hover{color:var(--ink)}
 nav button.on{color:var(--ink);border-color:var(--acc);font-weight:600}
-main{max-width:1200px;margin:auto;padding:12px}.panel{display:none}.panel.on{display:block}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
-.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
-textarea{width:100%;min-height:70px}
-button.b{font:inherit;border:1px solid var(--acc);background:var(--acc);color:#fff;border-radius:8px;padding:7px 14px;cursor:pointer}
-button.g{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px}
-.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13px}
-th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}th{color:var(--mute);font-weight:500;position:sticky;top:0;background:var(--card);cursor:default}
-th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card);z-index:1}
-tr.live td{background:#fff7cc}@media(prefers-color-scheme:dark){tr.live td{background:#3a3412}}
-.u{color:var(--up)}.d{color:var(--dn)}.U{background:var(--upbg);color:var(--up);font-weight:600}.D{background:var(--dnbg);color:var(--dn);font-weight:600}
-.chip{display:inline-block;border-radius:999px;padding:2px 9px;margin:2px;font-size:12px;border:1px solid var(--line)}
-.chip.u{border-color:var(--up)}.chip.d{border-color:var(--dn)}
-.mute{color:var(--mute);font-size:12px}.err{color:var(--up)}.big{font-size:20px;font-weight:600}
-.bar{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--dn),#d9b23a,var(--up));position:relative;margin:6px 0}
-.bar i{position:absolute;top:-4px;width:4px;height:18px;background:var(--ink);border-radius:2px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.k{background:var(--bg);border-radius:10px;padding:10px}.k b{display:block;font-size:18px}
-.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 1px}
-svg{width:100%;height:auto;display:block}.ok{color:var(--dn);font-weight:600}.no{color:var(--up);font-weight:600}
-footer{max-width:1200px;margin:auto;padding:16px;color:var(--mute);font-size:12px}
+main{max-width:1200px;margin:auto;padding:var(--s3);overflow-x:clip}
+.panel{display:none}.panel.on{display:block}
+.card{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:var(--s4);margin-bottom:var(--s3);max-width:100%;overflow-x:auto}
+.row{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:var(--s2);max-width:100%}
+textarea{width:100%;min-height:72px}
+button.b{font:inherit;border:1px solid var(--acc);background:var(--acc);color:var(--on-acc);border-radius:8px;padding:var(--s2) var(--s4);cursor:pointer}
+button.g{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:var(--s1) var(--s3);cursor:pointer;font-size:12px}
 button.g.on{border-color:var(--acc);color:var(--acc);font-weight:600}
 nav button,button.b,button.g{min-height:44px}
-.ok{color:#12793e}@media(prefers-color-scheme:dark){.ok{color:#4ad07f}}
-html,body{overflow-x:hidden;max-width:100%}main{overflow-x:hidden}.card{max-width:100%;overflow-x:auto}
-textarea,input,select{max-width:100%}
+button:hover{filter:brightness(1.06)}
+button:active{transform:translateY(1px)}
+button:disabled,input:disabled,select:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13px}
+th,td{padding:var(--s2);border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{color:var(--mute);font-weight:500;background:var(--card);cursor:default}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card);z-index:1}
+tr.live td{background:var(--live)}
+.u{color:var(--up)}.d{color:var(--dn)}.U{background:var(--upbg);color:var(--up);font-weight:600}.D{background:var(--dnbg);color:var(--dn);font-weight:600}
+.chip{display:inline-block;border-radius:999px;padding:var(--s1) var(--s2);margin:var(--s1) 2px;font-size:12px;border:1px solid var(--line)}
+.chip.u{border-color:var(--up)}.chip.d{border-color:var(--dn)}
+.mute{color:var(--mute);font-size:12px}.err{color:var(--up)}.big{font-size:20px;font-weight:600}
+.bar{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--dn),var(--mid),var(--up));position:relative;margin:var(--s2) 0}
+.bar i{position:absolute;top:-4px;width:4px;height:16px;background:var(--ink);border-radius:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s3)}
+.k{background:var(--bg);border-radius:8px;padding:var(--s3)}.k b{display:block;font-size:18px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 2px}
+svg{width:100%;height:auto;display:block}
+.ok{color:var(--ok);font-weight:600}.no{color:var(--up);font-weight:600}
+footer{max-width:1200px;margin:auto;padding:var(--s4);color:var(--mute);font-size:12px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style></head><body>
 <header><h1>搞搞股票工具箱</h1><p>复刻爱搞搞（2007）的“用钱投票”均价思路，前复权修正除权失真，加上信号诊断。</p></header>
 <nav id="nav"></nav>
