@@ -2,6 +2,14 @@
 
 Kendy 的私人 A 股工具箱：板块实时追踪（申万一级/二级 9 日涨跌、成交额、涨跌家数）+ 成本价、钱流等工具。仅研究自用，非投资建议。
 
+## 链接
+- 本仓库：https://github.com/yugecn/aigaogao-toolbox
+- 原版参考（爱搞搞·升跌对比，时光机存档）：https://web.archive.org/web/20230102215122/https://www.aigaogao.com/tools/pricecompare.html
+
+## 行情来源
+- 盘中实时（交易时段每 5 秒刷新）：腾讯 qt.gtimg.cn 为主，新浪 Market_Center.getHQNodeData 备用。
+- 收盘后每日更新：腾讯前复权 K 线 + 新浪申万成分。
+
 ## 文件
 - `index.html`：整个页面，数据内嵌（`const SEC=...`），双击即可打开。
 - `data/update.py`：每日一键更新，在 `data/` 目录运行 `python3 update.py`
