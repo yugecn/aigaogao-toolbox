@@ -3,7 +3,7 @@
 Kendy 的私人 A 股工具箱：板块实时追踪（申万一级/二级 9 日涨跌、成交额、涨跌家数）+ 成本价、钱流等工具。仅研究自用，非投资建议。
 
 ## 链接
-- 本仓库：https://github.com/yugecn/aigaogao-toolbox
+- 在线打开工具箱：https://yugecn.github.io/aigaogao-toolbox/
 - 原版参考（爱搞搞·升跌对比，时光机存档）：https://web.archive.org/web/20230102215122/https://www.aigaogao.com/tools/pricecompare.html
 
 ## 行情来源
