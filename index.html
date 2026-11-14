@@ -47,6 +47,8 @@ tr.live td{background:var(--live)}
 .k{background:var(--bg);border-radius:8px;padding:var(--s3)}.k b{display:block;font-size:18px}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 2px}
 svg{width:100%;height:auto;display:block}
+.lg{display:flex;flex-wrap:wrap;gap:var(--s3);font-size:12px;color:var(--mute);margin:var(--s2) 0 var(--s1)}.lg i{display:inline-block;width:12px;height:2px;margin-right:var(--s1);vertical-align:middle}
+tr.pick{cursor:pointer}tr.sel td{font-weight:600}
 .ok{color:var(--ok);font-weight:600}.no{color:var(--up);font-weight:600}
 footer{max-width:1200px;margin:auto;padding:var(--s4);color:var(--mute);font-size:12px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
@@ -180,12 +182,20 @@ const yi=x=>x>=1e8?(x/1e8).toFixed(2)+"亿":(x/1e4).toFixed(0)+"万";
 const cl=x=>x==null?"":x>0?"u":x<0?"d":"";
 function gcell(x){if(x==null)return"<td>–</td>";const c=x>0.03?"U":x<-0.03?"D":cl(x);return`<td class="${c}">${pc(x)}</td>`}
 function err(e){return`<div class="card err">代码无效或数据源暂时不可用（${e.message||e}）。<button class="g" onclick="this.closest('.panel').querySelector('.b').click()">重试</button></div>`}
-function chart(R,w=800,h=220){const X=R.filter(r=>r.a10),n=X.length;if(n<2)return"";const ys=X.flatMap(r=>[r.c,r.a10]),mx=Math.max(...ys),mn=Math.min(...ys),am=Math.max(...X.map(r=>r.amt));
- const x=i=>20+i*(w-30)/(n-1),y=v=>10+(mx-v)/(mx-mn||1)*(h*0.62);
+// 小图倍数：上图价格（收盘 + 10天均价，同一纵轴），下图成交额（零基线）。不用双轴。
+function gridY(w,y,ticks,fmt,x0){return ticks.map(v=>`<line x1="${x0}" x2="${w}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--line)" stroke-width="1"/><text x="${x0-4}" y="${(y(v)+4).toFixed(1)}" font-size="11" text-anchor="end" fill="var(--mute)" style="font-variant-numeric:tabular-nums">${fmt(v)}</text>`).join("")}
+function ticks3(mn,mx){return[mn,(mn+mx)/2,mx]}
+function legend(items){return`<div class="lg">${items.map(([c,t])=>`<span><i style="background:${c}"></i>${t}</span>`).join("")}</div>`}
+function chart(R,w=800){const X=R.filter(r=>r.a10),n=X.length;if(n<2)return"";
+ const ys=X.flatMap(r=>[r.c,r.a10]),mx=Math.max(...ys),mn=Math.min(...ys),pad=(mx-mn)*0.06||1,lo=mn-pad,hi=mx+pad,x0=52,h1=180,h2=90;
+ const bw=Math.max(2,Math.min(24,(w-x0-16)/n-4)),ins=Math.max(8,bw/2+2),x=i=>x0+ins+i*(w-x0-2*ins)/(n-1),y=v=>8+(hi-v)/(hi-lo)*(h1-24);
  const line=k=>X.map((r,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(r[k]).toFixed(1)).join("");
- const bars=X.map((r,i)=>{const bh=r.amt/am*h*0.25;return`<rect x="${(x(i)-1.5).toFixed(1)}" y="${(h-bh).toFixed(1)}" width="3" height="${bh.toFixed(1)}" fill="${r.pct>=0?"var(--up)":"var(--dn)"}" opacity=".5"/>`}).join("");
- return`<svg viewBox="0 0 ${w} ${h}">${bars}<path d="${line("c")}" fill="none" stroke="var(--ink)" stroke-width="1.5"/><path d="${line("a10")}" fill="none" stroke="var(--acc)" stroke-width="2" stroke-dasharray="5 3"/>
- <text x="22" y="14" font-size="12" fill="var(--mute)">— 收盘  ┅ 10天均价  ▮ 成交额(估)   ${X[0].date} → ${X[n-1].date}</text></svg>`}
+ const top=`<svg viewBox="0 0 ${w} ${h1}" role="img" aria-label="收盘与10天均价">${gridY(w,y,ticks3(mn,mx),v=>v.toFixed(2),x0)}<path d="${line("c")}" fill="none" stroke="var(--mute)" stroke-width="2"/><path d="${line("a10")}" fill="none" stroke="var(--acc)" stroke-width="2"/><text x="${x0+ins}" y="${h1-4}" font-size="11" fill="var(--mute)">${X[0].date}</text><text x="${w-8}" y="${h1-4}" font-size="11" text-anchor="end" fill="var(--mute)">${X[n-1].date}</text></svg>`;
+ const am=Math.max(...X.map(r=>r.amt)),yb=v=>8+(am-v)/(am||1)*(h2-16);
+ const bars=X.map((r,i)=>{const t=yb(r.amt);return`<rect x="${(x(i)-bw/2).toFixed(1)}" y="${t.toFixed(1)}" width="${bw.toFixed(1)}" height="${(yb(0)-t).toFixed(1)}" rx="1" fill="${r.pct>=0?"var(--up)":"var(--dn)"}"/>`}).join("");
+ const fa=v=>v>=1e8?(v/1e8).toFixed(1)+"亿":(v/1e4).toFixed(0)+"万";
+ const bot=`<svg viewBox="0 0 ${w} ${h2}" role="img" aria-label="成交额">${gridY(w,yb,[0,am],fa,x0)}${bars}</svg>`;
+ return legend([["var(--mute)","收盘"],["var(--acc)","10天均价（成本参考）"]])+top+legend([["var(--up)","成交额（估）收涨"],["var(--dn)","成交额（估）收跌"]])+bot}
 // ---------- Tool 1 ----------
 let liveTimer=null;
 async function T1(){const code=norm($("c1").value),N=+$("n1").value;if(liveTimer){clearInterval(liveTimer);liveTimer=null}
@@ -226,15 +236,20 @@ function copyLink(){const t=location.href;(navigator.clipboard?navigator.clipboa
 // ---------- Tool 3 ----------
 async function T3(){const L=parseList($("c3").value,10),N=+$("n3").value;if(!L.length)return;$("s3").textContent="加载中…";
  try{const q=await quotes(L).catch(()=>({}));const res=(await Promise.all(L.map(c=>kline(c,N+15).then(k=>({c,R:compute(k.rows).slice(-N),name:q[c]?q[c].name:c})).catch(()=>null)))).filter(Boolean);
-  const w=800,h=260,col=["#d6332a","#2f4bd8","#16904a","#d98a00","#8e44ad","#0097a7","#795548","#e91e63","#607d8b","#000"];
+  const w=800,h=260;
   const series=res.map(s=>s.R.map(r=>r.c/s.R[0].c-1)),all=series.flat(),mx=Math.max(...all,0),mn=Math.min(...all,0),n=Math.max(...series.map(s=>s.length));
-  const x=i=>30+i*(w-40)/(n-1),y=v=>10+(mx-v)/(mx-mn||1)*(h-30);
-  let svg=`<svg viewBox="0 0 ${w} ${h}"><line x1="30" x2="${w}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line)"/>`;
-  series.forEach((s,j)=>svg+=`<path d="${s.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1)).join("")}" fill="none" stroke="${col[j]}" stroke-width="2"/>`);svg+="</svg>";
+  const x0=52,x=i=>x0+8+i*(w-x0-16)/(n-1),y=v=>8+(mx-v)/(mx-mn||1)*(h-24);
+  const fin=series.map(s=>s[s.length-1]);let best=fin.indexOf(Math.max(...fin));
+  const tk=[...new Set([mn,0,mx].map(v=>+v.toFixed(4)))];
+  let svg=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="区间涨跌对比">${gridY(w,y,tk,v=>pc(v,0),x0)}`;
+  series.forEach((s,j)=>svg+=`<path data-j="${j}" d="${s.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1)).join("")}" fill="none" stroke="var(--mute)" stroke-opacity=".45" stroke-width="2"/>`);svg+="</svg>";
+  const col=res.map(()=> "var(--mute)");
   let t=`<table><tr><th>名称</th><th>区间涨跌%</th><th>最大回撤</th><th>10天均价变化%</th></tr>`;
   res.forEach((s,j)=>{let pk=-1e18,dd=0;s.R.forEach(r=>{pk=Math.max(pk,r.c);dd=Math.min(dd,r.c/pk-1)});const a=s.R.find(r=>r.a10),b=s.R[s.R.length-1];
-   t+=`<tr><td><span class="dot" style="background:${col[j]}"></span> ${s.name}</td><td class="${cl(b.c/s.R[0].c-1)}">${pc(b.c/s.R[0].c-1)}</td><td class="d">${pc(dd)}</td><td class="${cl(b.a10/a.a10-1)}">${pc(b.a10/a.a10-1)}</td></tr>`});
-  $("o3").innerHTML=`<div class="card">${svg}<div class="mute">${res[0].R[0].date} 起，起点归零</div></div><div class="card tw">${t}</table></div>`;$("s3").textContent=""}
+   t+=`<tr data-j="${j}" class="pick" tabindex="0"><td><span class="dot"></span> ${s.name}</td><td class="${cl(b.c/s.R[0].c-1)}">${pc(b.c/s.R[0].c-1)}</td><td class="d">${pc(dd)}</td><td class="${cl(b.a10/a.a10-1)}">${pc(b.a10/a.a10-1)}</td></tr>`});
+  $("o3").innerHTML=`<div class="card">${svg}<div class="mute">${res[0].R[0].date} 起，起点归零；默认高亮区间涨幅最大的一只，点表格任一行切换。</div></div><div class="card tw">${t}</table></div>`;$("s3").textContent="";
+  const hl=j=>{$("o3").querySelectorAll("path[data-j]").forEach(p=>{const on=+p.dataset.j===j;p.setAttribute("stroke",on?"var(--acc)":"var(--mute)");p.setAttribute("stroke-opacity",on?"1":".45");if(on)p.parentNode.appendChild(p)});$("o3").querySelectorAll("tr[data-j]").forEach(r=>{const on=+r.dataset.j===j;r.classList.toggle("sel",on);r.querySelector(".dot").style.background=on?"var(--acc)":"var(--mute)"})};
+  hl(best);$("o3").querySelectorAll("tr[data-j]").forEach(r=>{const f=()=>hl(+r.dataset.j);r.onclick=f;r.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();f()}}})}
  catch(e){$("o3").innerHTML=err(e)}}
 // ---------- Tool 4 ----------
 function vol(R,n){const s=R.slice(-n-1),l=[];for(let i=1;i<s.length;i++)l.push(Math.log(s[i].c/s[i-1].c));const m=l.reduce((a,b)=>a+b,0)/l.length;return Math.sqrt(l.reduce((a,b)=>a+(b-m)**2,0)/(l.length-1))*Math.sqrt(244)}
@@ -245,10 +260,10 @@ async function T4(){const c=norm($("c4").value);if(!c)return;$("s4").textContent
   const roll=[];for(let i=R.length-120;i<R.length;i++)if(i>21)roll.push({d:R[i].date,v:vol(R.slice(0,i+1),20)});
   const sorted=roll.map(r=>r.v).sort((a,b)=>a-b),pct=sorted.filter(x=>x<=v20).length/sorted.length;
   const w=800,h=180,mx=Math.max(...roll.map(r=>r.v)),mn=Math.min(...roll.map(r=>r.v));
-  const path=roll.map((r,i)=>(i?"L":"M")+(20+i*(w-30)/(roll.length-1)).toFixed(1)+","+(10+(mx-r.v)/(mx-mn||1)*(h-30)).toFixed(1)).join("");
+  const x0=52,yv=v=>8+(mx-v)/(mx-mn||1)*(h-24),path=roll.map((r,i)=>(i?"L":"M")+(x0+8+i*(w-x0-16)/(roll.length-1)).toFixed(1)+","+yv(r.v).toFixed(1)).join("");
   $("o4").innerHTML=`<div class="card"><div class="grid"><div class="k">20日年化波动率<b>${pc(v20,1)}</b></div><div class="k">60日年化波动率<b>${pc(v60,1)}</b></div><div class="k">14日ATR<b>${f2(a)}</b>${pc(a/last.c)} of 价</div><div class="k">20日平均振幅<b>${pc(amp)}</b></div></div>
   <p>当前波动处在自身近120日的 <b>${Math.round(pct*100)}%</b> 分位：${pct<0.33?"低波动，常是变盘前的安静期":pct<0.67?"中等":"高波动，仓位宜轻、止损放宽"}。</p>
-  <svg viewBox="0 0 ${w} ${h}"><path d="${path}" fill="none" stroke="var(--acc)" stroke-width="2"/><text x="22" y="14" font-size="12" fill="var(--mute)">滚动20日年化波动率 ${pc(mn,0)}–${pc(mx,0)}</text></svg></div>`;$("s4").textContent=""}
+  ${legend([["var(--acc)","滚动20日年化波动率（近120日，纵轴不从0起）"]])}<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="滚动20日年化波动率">${gridY(w,yv,ticks3(mn,mx),v=>pc(v,0),x0)}<path d="${path}" fill="none" stroke="var(--acc)" stroke-width="2"/></svg></div>`;$("s4").textContent=""}
  catch(e){$("o4").innerHTML=err(e)}}
 // ---------- Tool 5 ----------
 function fees(price,qty,side,p){const amt=price*qty,com=Math.max(amt*p.c,p.m),tax=side==="卖"?amt*p.t:0,tr=amt*p.x;return{amt,com,tax,tr,total:com+tax+tr}}
