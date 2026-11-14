@@ -13,7 +13,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,
 header{padding:var(--s4) var(--s4) var(--s2);max-width:1200px;margin:auto}
 h1{font-size:22px;margin:0;text-wrap:balance}h2{text-wrap:balance}
 header p{margin:var(--s1) 0 0;color:var(--mute);font-size:13px}
-nav{position:sticky;top:0;z-index:5;background:var(--bg);color:var(--ink);border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap;padding:0 var(--s3)}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);color:var(--ink);border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap;padding:0 max(var(--s3),calc((100% - 1200px)/2 + var(--s2)))}
 nav button{border:0;background:none;color:var(--mute);padding:var(--s3) var(--s2);font-size:14px;cursor:pointer;border-bottom:2px solid transparent}
 nav button:hover{color:var(--ink)}
 nav button.on{color:var(--ink);border-color:var(--acc);font-weight:600}
@@ -26,7 +26,9 @@ textarea{width:100%;min-height:72px}
 button.b{font:inherit;border:1px solid var(--acc);background:var(--acc);color:var(--on-acc);border-radius:8px;padding:var(--s2) var(--s4);cursor:pointer}
 button.g{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:var(--s1) var(--s3);cursor:pointer;font-size:12px}
 button.g.on{border-color:var(--acc);color:var(--acc);font-weight:600}
-nav button,button.b,button.g{min-height:44px}
+nav button{min-height:44px}button.b{min-height:36px}button.g{min-height:32px}
+@media(pointer:coarse){button.b,button.g{min-height:44px}}
+a{color:inherit;text-decoration:none}a:hover{color:var(--acc);text-decoration:underline;text-underline-offset:2px}td a{font-weight:500}
 button:hover{filter:brightness(1.06)}
 button:active{transform:translateY(1px)}
 button:disabled,input:disabled,select:disabled{opacity:.5;cursor:not-allowed}
@@ -44,7 +46,7 @@ tr.live td{background:var(--live)}
 .bar{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--dn),var(--mid),var(--up));position:relative;margin:var(--s2) 0}
 .bar i{position:absolute;top:-4px;width:4px;height:16px;background:var(--ink);border-radius:2px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s3)}
-.k{background:var(--bg);border-radius:8px;padding:var(--s3)}.k b{display:block;font-size:18px}
+.k{background:var(--bg);border-radius:8px;padding:var(--s3);color:var(--mute);font-size:12px}.k b{display:block;font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums;margin-top:var(--s1)}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 2px}
 svg{width:100%;height:auto;display:block}
 .lg{display:flex;flex-wrap:wrap;gap:var(--s3);font-size:12px;color:var(--mute);margin:var(--s2) 0 var(--s1)}.lg i{display:inline-block;width:12px;height:2px;margin-right:var(--s1);vertical-align:middle}
@@ -137,7 +139,7 @@ async function kline(code,n){n=Math.max(n,40);const key=code+":"+n;if(cache[key]
  const res={rows:out,adj};cache[key]=res;return res}
 async function quotes(codes){await jsonp("https://qt.gtimg.cn/q="+codes.join(","),null,7000,"gbk");const m={};
  codes.forEach(c=>{const s=window["v_"+c];if(!s)return;const f=s.split("~");if(f.length<38)return;
- m[c]={name:f[1],price:+f[3],prev:+f[4],open:+f[5],vol:+f[6]*100,ts:f[30],pct:+f[32],high:+f[33],low:+f[34],amt:+f[37]*1e4}});return m}
+ m[c]={name:f[1].replace(/\s+/g,""),price:+f[3],prev:+f[4],open:+f[5],vol:+f[6]*100,ts:f[30],pct:+f[32],high:+f[33],low:+f[34],amt:+f[37]*1e4}});return m}
 function bjNow(){const d=new Date(Date.now()+8*3600e3);return{day:d.getUTCDay(),min:d.getUTCHours()*60+d.getUTCMinutes(),date:d.toISOString().slice(0,10)}}
 function trading(){const b=bjNow();return b.day>=1&&b.day<=5&&((b.min>=555&&b.min<=690)||(b.min>=780&&b.min<=900))}
 // merge live quote as today's row
@@ -184,17 +186,18 @@ function gcell(x){if(x==null)return"<td>–</td>";const c=x>0.03?"U":x<-0.03?"D"
 function err(e){return`<div class="card err">代码无效或数据源暂时不可用（${e.message||e}）。<button class="g" onclick="this.closest('.panel').querySelector('.b').click()">重试</button></div>`}
 // 小图倍数：上图价格（收盘 + 10天均价，同一纵轴），下图成交额（零基线）。不用双轴。
 function gridY(w,y,ticks,fmt,x0){return ticks.map(v=>`<line x1="${x0}" x2="${w}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--line)" stroke-width="1"/><text x="${x0-4}" y="${(y(v)+4).toFixed(1)}" font-size="11" text-anchor="end" fill="var(--mute)" style="font-variant-numeric:tabular-nums">${fmt(v)}</text>`).join("")}
-function ticks3(mn,mx){return[mn,(mn+mx)/2,mx]}
+function ticks3(mn,mx,n=4){const r=mx-mn||Math.abs(mx)||1,raw=r/n,p=10**Math.floor(Math.log10(raw)),st=[1,2,2.5,5,10].map(m=>m*p).find(s=>s>=raw);const a=[];for(let v=Math.ceil(mn/st)*st;v<=mx+1e-9;v+=st)a.push(+v.toFixed(10));return a}
+function cw(){const m=document.querySelector("main");return Math.max(320,Math.min(1166,(m?m.clientWidth:800)-24-2*16-2))}
 function legend(items){return`<div class="lg">${items.map(([c,t])=>`<span><i style="background:${c}"></i>${t}</span>`).join("")}</div>`}
-function chart(R,w=800){const X=R.filter(r=>r.a10),n=X.length;if(n<2)return"";
+function chart(R,w=cw()){const X=R.filter(r=>r.a10),n=X.length;if(n<2)return"";
  const ys=X.flatMap(r=>[r.c,r.a10]),mx=Math.max(...ys),mn=Math.min(...ys),pad=(mx-mn)*0.06||1,lo=mn-pad,hi=mx+pad,x0=52,h1=180,h2=90;
  const bw=Math.max(2,Math.min(24,(w-x0-16)/n-4)),ins=Math.max(8,bw/2+2),x=i=>x0+ins+i*(w-x0-2*ins)/(n-1),y=v=>8+(hi-v)/(hi-lo)*(h1-24);
  const line=k=>X.map((r,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(r[k]).toFixed(1)).join("");
- const top=`<svg viewBox="0 0 ${w} ${h1}" role="img" aria-label="收盘与10天均价">${gridY(w,y,ticks3(mn,mx),v=>v.toFixed(2),x0)}<path d="${line("c")}" fill="none" stroke="var(--mute)" stroke-width="2"/><path d="${line("a10")}" fill="none" stroke="var(--acc)" stroke-width="2"/><text x="${x0+ins}" y="${h1-4}" font-size="11" fill="var(--mute)">${X[0].date}</text><text x="${w-8}" y="${h1-4}" font-size="11" text-anchor="end" fill="var(--mute)">${X[n-1].date}</text></svg>`;
+ const top=`<svg viewBox="0 0 ${w} ${h1}" role="img" aria-label="收盘与10天均价">${gridY(w,y,ticks3(lo,hi,5),v=>v>=100?v.toFixed(0):v.toFixed(2),x0)}<path d="${line("c")}" fill="none" stroke="var(--mute)" stroke-width="2"/><path d="${line("a10")}" fill="none" stroke="var(--acc)" stroke-width="2"/><text x="${x0+ins}" y="${h1-4}" font-size="11" fill="var(--mute)">${X[0].date}</text><text x="${w-8}" y="${h1-4}" font-size="11" text-anchor="end" fill="var(--mute)">${X[n-1].date}</text></svg>`;
  const am=Math.max(...X.map(r=>r.amt)),yb=v=>8+(am-v)/(am||1)*(h2-16);
  const bars=X.map((r,i)=>{const t=yb(r.amt);return`<rect x="${(x(i)-bw/2).toFixed(1)}" y="${t.toFixed(1)}" width="${bw.toFixed(1)}" height="${(yb(0)-t).toFixed(1)}" rx="1" fill="${r.pct>=0?"var(--up)":"var(--dn)"}"/>`}).join("");
- const fa=v=>v>=1e8?(v/1e8).toFixed(1)+"亿":(v/1e4).toFixed(0)+"万";
- const bot=`<svg viewBox="0 0 ${w} ${h2}" role="img" aria-label="成交额">${gridY(w,yb,[0,am],fa,x0)}${bars}</svg>`;
+ const fa=v=>!v?"0":v>=1e8?(v/1e8).toFixed(1)+"亿":(v/1e4).toFixed(0)+"万";
+ const bot=`<svg viewBox="0 0 ${w} ${h2}" role="img" aria-label="成交额">${gridY(w,yb,ticks3(0,am,2),fa,x0)}${bars}</svg>`;
  return legend([["var(--mute)","收盘"],["var(--acc)","10天均价（成本参考）"]])+top+legend([["var(--up)","成交额（估）收涨"],["var(--dn)","成交额（估）收跌"]])+bot}
 // ---------- Tool 1 ----------
 let liveTimer=null;
@@ -225,8 +228,8 @@ function draw2(){const ok=last2.filter(x=>x.R&&x.R.length),rows=ok.map(x=>{const
  const dot=v=>`<span class="dot" style="background:${v>0?"var(--up)":v<0?"var(--dn)":"var(--line)"}"></span>`;
  const th=(k,t)=>`<th style="cursor:pointer" onclick="srt('${k}')">${t}${sortKey===k?(sortDir>0?" ↑":" ↓"):""}</th>`;
  let h=`<div class="card"><b>市场宽度（本清单）</b>：三天转红 <span class="u">${red}</span> 只，三天转绿 <span class="d">${grn}</span> 只。<span class="mute">作者在全市场里用“转红过百只”判断大盘反转，这里只是你的清单。</span></div>
- <div class="card tw"><table><tr><th>代码</th><th>名称</th>${th("c","最新价")}${th("pct","涨跌%")}<th>3/5/10天</th>${th("gavg","升跌均")}${th("flow","钱流")}${th("H","资金温度")}<th style="text-align:left">信号</th></tr>`;
- rows.forEach(({x,r,H,S})=>{h+=`<tr><td>${x.c}</td><td>${x.q?x.q.name:""}</td><td>${f2(r.c)}</td><td class="${cl(r.pct)}">${pc(r.pct)}</td><td>${dot(r.g3)}${dot(r.g5)}${dot(r.g10)}</td><td class="${cl(r.gavg)}">${pc(r.gavg)} ${r.trend>0?"↑":r.trend<0?"↓":""}</td><td>${flowSym(r)}</td><td>${H??"–"}</td><td style="text-align:left">${S.map(s=>`<span class="chip ${s.c}">${s.t}</span>`).join("")}</td></tr>`});
+ <div class="card tw"><table><tr><th>代码</th><th style="text-align:left">名称</th>${th("c","最新价")}${th("pct","涨跌%")}<th>3/5/10天</th>${th("gavg","升跌均")}${th("flow","钱流")}${th("H","资金温度")}<th style="text-align:left">信号</th></tr>`;
+ rows.forEach(({x,r,H,S})=>{h+=`<tr><td class="mute">${x.c}</td><td style="text-align:left"><b>${x.q?x.q.name:""}</b></td><td>${f2(r.c)}</td><td class="${cl(r.pct)}">${pc(r.pct)}</td><td>${dot(r.g3)}${dot(r.g5)}${dot(r.g10)}</td><td class="${cl(r.gavg)}">${pc(r.gavg)} ${r.trend>0?"↑":r.trend<0?"↓":""}</td><td>${flowSym(r)}</td><td>${H??"–"}</td><td style="text-align:left">${S.map(s=>`<span class="chip ${s.c}">${s.t}</span>`).join("")}</td></tr>`});
  h+="</table></div>";last2.filter(x=>x.e).forEach(x=>h+=`<div class="mute">${x.c}：无数据</div>`);
  ok.forEach(x=>{h+=`<div class="card tw"><b>${x.q?x.q.name:""} ${x.c}</b><table><tr><th>日期</th><th>收盘</th><th>涨跌%</th><th>钱流</th><th>升跌%3天</th><th>升跌%5天</th><th>升跌%10天</th><th>升跌均</th></tr>`;
   x.R.slice(-4).reverse().forEach(r=>h+=`<tr class="${r.live?"live":""}"><td>${r.date}</td><td>${f2(r.c)}</td><td class="${cl(r.pct)}">${pc(r.pct)}</td><td>${flowSym(r)}</td>${gcell(r.g3)}${gcell(r.g5)}${gcell(r.g10)}<td class="${cl(r.gavg)}">${pc(r.gavg)} ${r.trend>0?"↑":r.trend<0?"↓":""}</td></tr>`);h+="</table></div>"});
@@ -236,19 +239,22 @@ function copyLink(){const t=location.href;(navigator.clipboard?navigator.clipboa
 // ---------- Tool 3 ----------
 async function T3(){const L=parseList($("c3").value,10),N=+$("n3").value;if(!L.length)return;$("s3").textContent="加载中…";
  try{const q=await quotes(L).catch(()=>({}));const res=(await Promise.all(L.map(c=>kline(c,N+15).then(k=>({c,R:compute(k.rows).slice(-N),name:q[c]?q[c].name:c})).catch(()=>null)))).filter(Boolean);
-  const w=800,h=260;
+  const w=cw(),h=280;
   const series=res.map(s=>s.R.map(r=>r.c/s.R[0].c-1)),all=series.flat(),mx=Math.max(...all,0),mn=Math.min(...all,0),n=Math.max(...series.map(s=>s.length));
-  const x0=52,x=i=>x0+8+i*(w-x0-16)/(n-1),y=v=>8+(mx-v)/(mx-mn||1)*(h-24);
+  const x0=48,xr=w-96,x=i=>x0+8+i*(xr-x0-8)/(n-1),y=v=>10+(mx-v)/(mx-mn||1)*(h-34);
   const fin=series.map(s=>s[s.length-1]);let best=fin.indexOf(Math.max(...fin));
-  const tk=[...new Set([mn,0,mx].map(v=>+v.toFixed(4)))];
+  const tk=ticks3(mn,mx);
   let svg=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="区间涨跌对比">${gridY(w,y,tk,v=>pc(v,0),x0)}`;
-  series.forEach((s,j)=>svg+=`<path data-j="${j}" d="${s.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1)).join("")}" fill="none" stroke="var(--mute)" stroke-opacity=".45" stroke-width="2"/>`);svg+="</svg>";
+  series.forEach((s,j)=>svg+=`<path data-j="${j}" d="${s.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1)).join("")}" fill="none" stroke="var(--mute)" stroke-opacity=".45" stroke-width="2"/>`);
+  const lab=series.map((s,j)=>({j,v:s[s.length-1],y:y(s[s.length-1]),xe:x(s.length-1)})).sort((a,b)=>a.y-b.y);for(let i=1;i<lab.length;i++)lab[i].y=Math.max(lab[i].y,lab[i-1].y+14);
+  lab.forEach(l=>svg+=`<text data-j="${l.j}" x="${(l.xe+6).toFixed(1)}" y="${(l.y+4).toFixed(1)}" font-size="11" fill="var(--mute)" style="font-variant-numeric:tabular-nums">${res[l.j].name} ${pc(l.v,1)}</text>`);
+  svg+=`<text x="${x0+8}" y="${h-4}" font-size="11" fill="var(--mute)">${res[0].R[0].date}</text><text x="${xr}" y="${h-4}" font-size="11" text-anchor="end" fill="var(--mute)">${res[0].R[res[0].R.length-1].date}</text></svg>`;
   const col=res.map(()=> "var(--mute)");
   let t=`<table><tr><th>名称</th><th>区间涨跌%</th><th>最大回撤</th><th>10天均价变化%</th></tr>`;
   res.forEach((s,j)=>{let pk=-1e18,dd=0;s.R.forEach(r=>{pk=Math.max(pk,r.c);dd=Math.min(dd,r.c/pk-1)});const a=s.R.find(r=>r.a10),b=s.R[s.R.length-1];
    t+=`<tr data-j="${j}" class="pick" tabindex="0"><td><span class="dot"></span> ${s.name}</td><td class="${cl(b.c/s.R[0].c-1)}">${pc(b.c/s.R[0].c-1)}</td><td class="d">${pc(dd)}</td><td class="${cl(b.a10/a.a10-1)}">${pc(b.a10/a.a10-1)}</td></tr>`});
   $("o3").innerHTML=`<div class="card">${svg}<div class="mute">${res[0].R[0].date} 起，起点归零；默认高亮区间涨幅最大的一只，点表格任一行切换。</div></div><div class="card tw">${t}</table></div>`;$("s3").textContent="";
-  const hl=j=>{$("o3").querySelectorAll("path[data-j]").forEach(p=>{const on=+p.dataset.j===j;p.setAttribute("stroke",on?"var(--acc)":"var(--mute)");p.setAttribute("stroke-opacity",on?"1":".45");if(on)p.parentNode.appendChild(p)});$("o3").querySelectorAll("tr[data-j]").forEach(r=>{const on=+r.dataset.j===j;r.classList.toggle("sel",on);r.querySelector(".dot").style.background=on?"var(--acc)":"var(--mute)"})};
+  const hl=j=>{$("o3").querySelectorAll("path[data-j]").forEach(p=>{const on=+p.dataset.j===j;p.setAttribute("stroke",on?"var(--acc)":"var(--mute)");p.setAttribute("stroke-opacity",on?"1":".45");if(on)p.parentNode.insertBefore(p,p.parentNode.querySelector("text[data-j]"))});$("o3").querySelectorAll("text[data-j]").forEach(t=>{const on=+t.dataset.j===j;t.setAttribute("fill",on?"var(--ink)":"var(--mute)");t.setAttribute("font-weight",on?"600":"400")});$("o3").querySelectorAll("tr[data-j]").forEach(r=>{const on=+r.dataset.j===j;r.classList.toggle("sel",on);r.querySelector(".dot").style.background=on?"var(--acc)":"var(--mute)"})};
   hl(best);$("o3").querySelectorAll("tr[data-j]").forEach(r=>{const f=()=>hl(+r.dataset.j);r.onclick=f;r.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();f()}}})}
  catch(e){$("o3").innerHTML=err(e)}}
 // ---------- Tool 4 ----------
@@ -259,11 +265,11 @@ async function T4(){const c=norm($("c4").value);if(!c)return;$("s4").textContent
   let amp=0;for(let i=R.length-20;i<R.length;i++)amp+=(R[i].h-R[i].l)/R[i-1].c;amp/=20;
   const roll=[];for(let i=R.length-120;i<R.length;i++)if(i>21)roll.push({d:R[i].date,v:vol(R.slice(0,i+1),20)});
   const sorted=roll.map(r=>r.v).sort((a,b)=>a-b),pct=sorted.filter(x=>x<=v20).length/sorted.length;
-  const w=800,h=180,mx=Math.max(...roll.map(r=>r.v)),mn=Math.min(...roll.map(r=>r.v));
+  const w=cw(),h=200,mx=Math.max(...roll.map(r=>r.v)),mn=Math.min(...roll.map(r=>r.v));
   const x0=52,yv=v=>8+(mx-v)/(mx-mn||1)*(h-24),path=roll.map((r,i)=>(i?"L":"M")+(x0+8+i*(w-x0-16)/(roll.length-1)).toFixed(1)+","+yv(r.v).toFixed(1)).join("");
-  $("o4").innerHTML=`<div class="card"><div class="grid"><div class="k">20日年化波动率<b>${pc(v20,1)}</b></div><div class="k">60日年化波动率<b>${pc(v60,1)}</b></div><div class="k">14日ATR<b>${f2(a)}</b>${pc(a/last.c)} of 价</div><div class="k">20日平均振幅<b>${pc(amp)}</b></div></div>
+  $("o4").innerHTML=`<div class="card"><div class="grid"><div class="k">20日年化波动率<b>${pc(v20,1)}</b></div><div class="k">60日年化波动率<b>${pc(v60,1)}</b></div><div class="k">14日ATR<b>${f2(a)}</b><span class="mute">约占股价 ${pc(a/last.c)}</span></div><div class="k">20日平均振幅<b>${pc(amp)}</b></div></div>
   <p>当前波动处在自身近120日的 <b>${Math.round(pct*100)}%</b> 分位：${pct<0.33?"低波动，常是变盘前的安静期":pct<0.67?"中等":"高波动，仓位宜轻、止损放宽"}。</p>
-  ${legend([["var(--acc)","滚动20日年化波动率（近120日，纵轴不从0起）"]])}<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="滚动20日年化波动率">${gridY(w,yv,ticks3(mn,mx),v=>pc(v,0),x0)}<path d="${path}" fill="none" stroke="var(--acc)" stroke-width="2"/></svg></div>`;$("s4").textContent=""}
+  ${legend([["var(--acc)","滚动20日年化波动率（近120日，纵轴不从0起）"]])}<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="滚动20日年化波动率">${gridY(w,yv,ticks3(mn,mx),v=>pc(v,0),x0)}<text x="${x0+8}" y="${h-4}" font-size="11" fill="var(--mute)">${roll[0].d}</text><text x="${w-8}" y="${h-4}" font-size="11" text-anchor="end" fill="var(--mute)">${roll[roll.length-1].d}</text><path d="${path}" fill="none" stroke="var(--acc)" stroke-width="2"/></svg></div>`;$("s4").textContent=""}
  catch(e){$("o4").innerHTML=err(e)}}
 // ---------- Tool 5 ----------
 function fees(price,qty,side,p){const amt=price*qty,com=Math.max(amt*p.c,p.m),tax=side==="卖"?amt*p.t:0,tr=amt*p.x;return{amt,com,tax,tr,total:com+tax+tr}}
