@@ -8,10 +8,12 @@ async function sinaPage(p){const r=await fetch(`https://vip.stock.finance.sina.c
 async function liveSina(){const m={};const pages=Math.ceil((Object.keys(SEC.names).length+150)/100);let p=1,ok=0;
  const run=async()=>{while(p<=pages){const my=p++;try{const d=await sinaPage(my);d.forEach(x=>{m[x.symbol]={pct:+x.changepercent,amt:+x.amount,v:+x.volume,t:x.ticktime,price:+x.trade,name:x.name}});ok++}catch(e){}}};
  await Promise.all(Array.from({length:8},run));if(Object.keys(m).length<3000)throw new Error("sina "+Object.keys(m).length);return m}
-async function liveTencent(){const codes=Object.keys(SEC.names),m={};for(let i=0;i<codes.length;i+=60){const q=await quotes(codes.slice(i,i+60)).catch(()=>({}));for(const c in q){const x=q[c];m[c]={pct:x.pct,amt:x.amt,v:x.vol,price:x.price,name:x.name,t:x.ts}}}if(Object.keys(m).length<3000)throw new Error("tencent");return m}
-async function loadLive(){$("s0").textContent="拉取全市场实时行情…";
- try{LIVE=await liveSina();liveAt="新浪实时"}catch(e){try{LIVE=await liveTencent();liveAt="腾讯实时"}catch(e2){LIVE=null;liveAt="实时失败，显示 "+SEC.built+" 收盘"}}
- const b=bjNow();$("s0").textContent=`${liveAt} · 北京时间 ${String(Math.floor(b.min/60)).padStart(2,"0")}:${String(b.min%60).padStart(2,"0")} · 覆盖 ${LIVE?Object.keys(LIVE).filter(c=>SEC.names[c]).length:0}/${SEC.all.n} 只`;
+async function liveTencent(){const codes=Object.keys(SEC.names),m={},B=400,chunks=[];for(let i=0;i<codes.length;i+=B)chunks.push(codes.slice(i,i+B));let k=0;
+ const run=async()=>{while(k<chunks.length){const ch=chunks[k++];const q=await quotes(ch).catch(()=>({}));for(const c in q){const x=q[c];m[c]={pct:x.pct,amt:x.amt,v:x.vol,price:x.price,name:x.name,t:x.ts}}}};
+ await Promise.all(Array.from({length:4},run));if(Object.keys(m).length<3000)throw new Error("tencent "+Object.keys(m).length);return m}
+async function loadLive(){if(!LIVE)$("s0").textContent="拉取全市场实时行情…";
+ try{LIVE=await liveTencent();liveAt="腾讯实时"}catch(e){try{LIVE=await liveSina();liveAt="新浪实时(备用)"}catch(e2){LIVE=null;liveAt="实时失败，显示 "+SEC.built+" 收盘"}}
+ const b=bjNow();$("s0").textContent=`${liveAt} · 北京时间 ${String(Math.floor(b.min/60)).padStart(2,"0")}:${String(b.min%60).padStart(2,"0")} · 覆盖 ${LIVE?Object.keys(LIVE).filter(c=>SEC.names[c]).length:0}/${SEC.all.n} 只${trading()?" · 盘中每5秒刷新":""}`;
  drawSec()}
 function liveAgg(codes){if(!LIVE)return null;let s=0,n=0,a=0,u=0,d=0,f=0;for(const c of codes){const x=LIVE[c];if(!x||!x.v)continue;n++;s+=x.pct;a+=x.amt;if(x.pct>0)u++;else if(x.pct<0)d++;else f++}return n?{h:s/n,a:a/1e8,u,d,f,n}:null}
 function secRow(S){const L=liveAgg(S.c),h=S.h.slice(),a=S.a.slice(),D=SEC.days;
@@ -61,4 +63,6 @@ function drawCons(){const S=SEC.secs.find(s=>s.k===$("secSel").value);if(!S)retu
 function toMulti(k){const S=SEC.secs.find(s=>s.k===k);const L=S.c.slice().sort((a,b)=>((LIVE&&LIVE[b]?LIVE[b].amt:0)-(LIVE&&LIVE[a]?LIVE[a].amt:0))).slice(0,50);$("c2").value=L.join(",");show("p2");T2()}
 async function idx0(){const q=await quotes(SECIDX.map(x=>x[1])).catch(()=>({}));
  $("idx0").innerHTML=SECIDX.map(([n,c])=>{const x=q[c];return`<div class="k" style="cursor:pointer" onclick="$('c1').value='${c}';show('p1');T1()"><div class="mute">${n}</div><div class="big ${x?cls(x.pct):""}">${x?x.price.toFixed(2):"--"}</div><div class="${x?cls(x.pct):""}">${x?fp(x.pct):""} ${x?"· "+(x.amt/1e8).toFixed(0)+"亿":""}</div></div>`}).join("")}
-function T0(){idx0();loadLive();if(secTimer)clearInterval(secTimer);if(trading())secTimer=setInterval(()=>{idx0();loadLive()},60000)}
+let secBusy=false;
+async function tick0(){if(secBusy)return;secBusy=true;try{await Promise.all([idx0(),loadLive()])}finally{secBusy=false}}
+function T0(){tick0();if(secTimer)clearInterval(secTimer);secTimer=setInterval(()=>{if(trading()&&!document.hidden&&$("p0").classList.contains("on"))tick0()},5000)}
