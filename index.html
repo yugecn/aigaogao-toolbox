@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>搞搞股票工具箱 · 复刻优化版</title>
 <style>
-:root{--bg:#f7f6f2;--card:#fff;--ink:#1d1d1f;--mute:#6b6b70;--line:#e6e4dd;--up:#d6332a;--dn:#16904a;--upbg:#fde4e1;--dnbg:#dcf3e4;--acc:#2f4bd8}
+:root{--bg:#f7f6f2;--card:#fff;--ink:#1d1d1f;--mute:#6b6b70;--line:#e6e4dd;--up:#c0281f;--dn:#0f7339;--upbg:#fde4e1;--dnbg:#dcf3e4;--acc:#2f4bd8}
 @media(prefers-color-scheme:dark){:root{--bg:#141416;--card:#1e1e22;--ink:#f1f1f3;--mute:#9a9aa2;--line:#2e2e34;--up:#ff5a4f;--dn:#34c26c;--upbg:#4a1e1b;--dnbg:#173a26;--acc:#7f93ff}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
 header{padding:18px 16px 6px;max-width:1200px;margin:auto}h1{font-size:22px;margin:0}header p{margin:4px 0 0;color:var(--mute);font-size:13px}
@@ -98,7 +98,7 @@ textarea,input,select{max-width:100%}
 "use strict";
 const TABS=[["p0","板块实时"],["p1","成本价(单股)"],["p2","成本价(多股)"],["p3","升跌对比"],["p4","波动指数"],["p5","赢亏计算"],["p6","黄金分割"],["p7","说明与验收"]];
 const nav=document.getElementById("nav");TABS.forEach(([id,t],i)=>{const b=document.createElement("button");b.textContent=t;b.onclick=()=>show(id);b.id="t_"+id;nav.appendChild(b)});
-function show(id){TABS.forEach(([p])=>{$(p).classList.toggle("on",p===id);$("t_"+p).classList.toggle("on",p===id)})}
+function show(id){if($(id).classList.contains("on")){window.scrollTo({top:0,behavior:"smooth"});if(id==="p0"&&typeof T0==="function")T0();return}TABS.forEach(([p])=>{$(p).classList.toggle("on",p===id);$("t_"+p).classList.toggle("on",p===id)})}
 function $(i){return document.getElementById(i)}
 const IDX=[["上证指数","sh000001"],["深证成指","sz399001"],["创业板指","sz399006"],["沪深300","sh000300"],["中证500","sh000905"],["中证1000","sh000852"],["上证50","sh000016"],["科创50","sh000688"]];
 IDX.forEach(([n,c])=>{const b=document.createElement("button");b.className="g";b.textContent=n;b.onclick=()=>{$("c1").value=c;T1()};$("idx").appendChild(b)});
@@ -291,7 +291,7 @@ const SECIDX=[["上证指数","sh000001"],["深证成指","sz399001"],["创业�
 let LIVE=null,liveAt="",secLv="sw1",secSort="hl",secDir=-1,secTimer=null,secView="v_rt";
 const fp=x=>x==null||isNaN(x)?"--":(x>0?"+":"")+x.toFixed(2)+"%";
 const cls=x=>x>0?"u":x<0?"d":"";
-function heatCell(x,max){if(x==null)return"<td>--</td>";const a=Math.min(1,Math.abs(x)/(max||3));const c=x>=0?"214,51,42":"22,144,74";return`<td style="background:rgba(${c},${(0.08+a*0.42).toFixed(2)})" class="${cls(x)}">${fp(x)}</td>`}
+function heatCell(x,max){if(x==null)return"<td>--</td>";const a=Math.min(1,Math.abs(x)/(max||3));const dk=matchMedia("(prefers-color-scheme:dark)").matches,c=x>=0?[214,51,42]:[22,144,74],base=dk?[30,30,34]:[255,255,255],t=0.08+a*0.32,m=c.map((v,i)=>Math.round(base[i]+(v-base[i])*t)).join(",");return`<td style="background:rgb(${m});color:var(--ink);font-weight:600">${fp(x)}</td>`}
 async function sinaPage(p){const r=await fetch(`https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?page=${p}&num=100&sort=symbol&asc=1&node=hs_a`);const t=await r.text();return JSON.parse(t||"[]")}
 async function liveSina(){const m={};const pages=Math.ceil((Object.keys(SEC.names).length+150)/100);let p=1,ok=0;
  const run=async()=>{while(p<=pages){const my=p++;try{const d=await sinaPage(my);d.forEach(x=>{m[x.symbol]={pct:+x.changepercent,amt:+x.amount,v:+x.volume,t:x.ticktime,price:+x.trade,name:x.name}});ok++}catch(e){}}};
